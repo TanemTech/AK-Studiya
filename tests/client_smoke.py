@@ -87,14 +87,15 @@ def check(browser, width, height, mobile, language):
     visible = page.locator("body").inner_text()
     assert not re.search(r"SALON NAME|(?:Услуга|Service)\s+\d{2}\b", visible), (
         "Demo labels remain visible on a production page")
-    # Google Maps embed can emit WebKit-only internal errors from its third-party
-    # frame. Keep the filter narrow so TANEM application errors still fail the run.
-    google_maps_frame_noise = (
+    # Map widgets can emit errors inside their own third-party frames while
+    # the TANEM application remains healthy. Filter only known frame noise.
+    third_party_frame_noise = (
         'Could not load "search_impl".',
         'Could not load "util".',
         'maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true due to access control checks.',
+        'yandex.ru" from accessing a frame with origin',
     )
-    app_errors = [error for error in errors if not any(token in error for token in google_maps_frame_noise)]
+    app_errors = [error for error in errors if not any(token in error for token in third_party_frame_noise)]
     assert not app_errors, f"JavaScript errors: {app_errors}"
     assert not failed_assets, f"Missing site assets: {failed_assets}"
     context.close()
@@ -108,10 +109,15 @@ def main():
     with sync_playwright() as playwright:
         browser = getattr(playwright, args.engine).launch(headless=True)
         try:
-            for case in [(1366, 900, False, "ru"), (1366, 900, False, "en"),
-                         (1366, 900, False, "hy"), (390, 844, True, "ru"),
-                         (390, 844, True, "en"), (390, 844, True, "hy"),
-                         (1180, 820, True, "ru")]:
+            initial = browser.new_page()
+            initial.goto(HOST, wait_until="domcontentloaded", timeout=30000)
+            locales = initial.evaluate("window.TANEM_SITE_DATA?.locales")
+            initial.close()
+            assert locales, "Site locales are missing"
+            cases = ([(1366, 900, False, lang) for lang in locales]
+                     + [(390, 844, True, lang) for lang in locales]
+                     + [(1180, 820, True, locales[0])])
+            for case in cases:
                 check(browser, *case)
         finally:
             browser.close()
