@@ -94,6 +94,7 @@ def check(browser, width, height, mobile, language):
         'Could not load "util".',
         'maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true due to access control checks.',
         'yandex.ru" from accessing a frame with origin',
+        'Failed to load https://yandex.ru/ads/system/context.js',
     )
     app_errors = [error for error in errors if not any(token in error for token in third_party_frame_noise)]
     assert not app_errors, f"JavaScript errors: {app_errors}"
