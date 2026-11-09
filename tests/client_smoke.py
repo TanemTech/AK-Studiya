@@ -25,6 +25,10 @@ def check(browser, width, height, mobile, language):
     page = context.new_page()
     errors = []
     failed_assets = []
+    # The map is an external iframe, not part of the salon UI under test.
+    # Serve a neutral frame in CI to avoid transient third-party ad errors.
+    page.route("https://yandex.ru/map-widget/v1/**", lambda route: route.fulfill(
+        status=200, content_type="text/html", body="<!doctype html><title>Map test stub</title>"))
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("response", lambda response: failed_assets.append(response.url)
             if response.status >= 400 and response.url.startswith(HOST)
@@ -94,6 +98,7 @@ def check(browser, width, height, mobile, language):
         'Could not load "util".',
         'maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true due to access control checks.',
         'yandex.ru" from accessing a frame with origin',
+        'Failed to load https://yandex.ru/ads/system/context.js',
     )
     app_errors = [error for error in errors if not any(token in error for token in third_party_frame_noise)]
     assert not app_errors, f"JavaScript errors: {app_errors}"

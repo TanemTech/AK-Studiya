@@ -70,7 +70,8 @@
       logo:'',
       hero:[photo('hero.webp','Интерьер АК Студии','AK Studio interior')],
       about:'profile.webp',
-      portfolio:[...hairPhotos,...salonPhotos],
+      // Exactly 7 preview photos on both mobile and desktop; the full gallery remains complete.
+      portfolio:[...hairPhotos,salonPhotos[2],salonPhotos[3]],
       gallery:{'Волосы':hairPhotos,'Салон':salonPhotos},
       desktopGalleryLimits:{'Волосы':5,'Салон':8}
     },
